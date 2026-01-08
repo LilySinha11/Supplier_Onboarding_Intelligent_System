@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screening Result</title>
+</head>
+<body>
+    <h2>Screening Result</h2>
+
+        <p><b>Status:</b> {{ result.screening_status }}</p>
+        <p><b>Score:</b> {{ result.pre_qualification_score }}</p>
+
+        <h3>Reasoning</h3>
+        <ul>
+        {% for log in result.agent_logs %}
+        <li>{{ log }}</li>
+        {% endfor %}
+        </ul>
+
+        <a href="/">Register Another Supplier</a>
+
+    {% if result.risk_level %}
+        <hr>
+        <h2>Risk Intelligence</h2>
+
+        <p><b>Risk Level:</b> {{ result.risk_level }}</p>
+        <p><b>Risk Score:</b> {{ result.risk_score }}</p>
+
+        <p><b>Explanation:</b></p>
+        <p>{{ result.risk_explanation }}</p>
+
+        <p><b>Sources:</b></p>
+        <ul>
+        {% for src in result.risk_sources %}
+        <li><a href="{{ src }}" target="_blank">{{ src }}</a></li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+    
+    {% if result.workflow_status == "PAUSED" %}
+        <hr>
+        <h3>Next Step</h3>
+        <p>{{ result.pause_reason }}</p>
+
+        <form action="/documents/upload" method="get">
+            <button type="submit">📄 Proceed to Document Upload</button>
+        </form>
+    {% endif %}
+
+    
+
+    
+</body>
+</html>

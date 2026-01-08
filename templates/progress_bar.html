@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <!-- templates/progress_bar.html -->
+
+        <div style="
+            margin-bottom: 30px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #fafafa;
+        ">
+
+            {% set stages = ["screening", "risk", "documents"] %}
+
+            {% for stage in stages %}
+                {% if stage == result.current_stage %}
+                    <strong style="color: blue;">
+                        [ {{ stage | capitalize }} 🔄 ]
+                    </strong>
+                {% elif stages.index(stage) < stages.index(result.current_stage) %}
+                    <span style="color: green;">
+                        [ {{ stage | capitalize }} ✔ ]
+                    </span>
+                {% else %}
+                    <span style="color: gray;">
+                        [ {{ stage | capitalize }} ⏳ ]
+                    </span>
+                {% endif %}
+
+                {% if not loop.last %}
+                    →
+                {% endif %}
+            {% endfor %}
+
+        </div>
+
+    
+</body>
+</html>

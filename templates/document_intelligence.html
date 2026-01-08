@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document Intelligence</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .box {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #fafafa;
+        }
+
+        .ok {
+            color: green;
+            font-weight: bold;
+        }
+
+        .warn {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .bad {
+            color: red;
+            font-weight: bold;
+        }
+
+        ul {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 🔷 Pipeline Progress Bar -->
+{% include "progress_bar.html" %}
+
+<h1>📄 Document Intelligence</h1>
+
+<!-- 1️⃣ Uploaded Documents -->
+<div class="section">
+    <h3>1️⃣ Uploaded Documents</h3>
+    <div class="box">
+        {% if result.document_status and result.document_status.uploaded %}
+            {% for doc in result.document_status.uploaded %}
+                <p class="ok">✔ {{ doc }}</p>
+            {% endfor %}
+        {% else %}
+            <p class="warn">⚠ No documents uploaded</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 2️⃣ Extracted Fields -->
+{% if result.document_extraction %}
+<div class="section">
+    <h3>2️⃣ Extracted Information</h3>
+    <div class="box">
+        {% for doc, fields in result.document_extraction.items() %}
+            <h4>{{ doc }}</h4>
+            <ul>
+                {% for key, value in fields.items() %}
+                    <li><b>{{ key | replace("_", " ") | capitalize }}:</b> {{ value }}</li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- 3️⃣ Validation Results -->
+{% if result.document_validation %}
+<div class="section">
+    <h3>3️⃣ Validation Results</h3>
+    <div class="box">
+
+        <!-- Expiry Check -->
+        {% if result.document_validation.expired %}
+            <p class="bad">❌ Expired Documents Detected</p>
+            <ul>
+                {% for doc in result.document_validation.expired %}
+                    <li>{{ doc }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="ok">✔ No expired documents</p>
+        {% endif %}
+
+        <!-- Name Consistency -->
+        {% if result.document_validation.name_consistent %}
+            <p class="ok">✔ Supplier name is consistent across documents</p>
+        {% else %}
+            <p class="warn">⚠ Supplier name mismatch detected across documents</p>
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
+
+<!-- 4️⃣ Document Completeness Score -->
+{% if result.document_score is not none %}
+<div class="section">
+    <h3>4️⃣ Document Completeness Score</h3>
+    <div class="box">
+        <p><b>Score:</b> {{ result.document_score }}</p>
+
+        {% if result.document_score >= 0.8 %}
+            <p class="ok">✔ Documents are complete. Proceeding to next stage.</p>
+        {% elif result.document_score >= 0.5 %}
+            <p class="warn">⚠ Documents require manual review.</p>
+        {% else %}
+            <p class="bad">❌ Action required. Please upload corrected documents.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<hr>
+
+<a href="/">⬅ Register Another Supplier</a>
+
+</body>
+</html>

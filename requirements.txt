@@ -1,0 +1,14 @@
+flask 
+flask-sqlalchemy 
+langgraph 
+langchain
+langchain-groq
+requests
+python-dotenv
+pytest
+feedparser
+werkzeug
+pytesseract
+pdfplumber
+pdf2image 
+pillow

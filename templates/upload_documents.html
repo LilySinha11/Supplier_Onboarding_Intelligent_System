@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Required Documents</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        .box {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+            background: #ffecec;
+        }
+        .ok {
+            color: green;
+            font-weight: bold;
+        }
+        button {
+            padding: 8px 16px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>📤 Upload Required Documents</h2>
+
+<!-- 🔴 Show error ONLY if workflow is paused -->
+<!--{% if state.workflow_status == "PAUSED" and pause_reason %}
+    <div class="box error">
+        {{ pause_reason }}
+    </div>
+{% endif %}  -->
+
+<!-- ✅ Uploaded Documents Summary -->
+{% if state.document_status.uploaded %}
+    <div class="box">
+        <h4>✅ Uploaded Documents</h4>
+        {% for doc in state.document_status.uploaded %}
+            <p class="ok">✔ {{ doc }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- 📄 Upload form ONLY if documents are missing -->
+{% if state.document_status.uploaded | length < 3 %}
+    <div class="box">
+        <form method="POST" action="/documents/upload" enctype="multipart/form-data">
+
+            {% if "GST" not in state.document_status.uploaded %}
+                <label><b>GST Certificate</b></label><br>
+                <input type="file" name="GST"><br><br>
+            {% endif %}
+
+            {% if "PAN" not in state.document_status.uploaded %}
+                <label><b>PAN Card</b></label><br>
+                <input type="file" name="PAN"><br><br>
+            {% endif %}
+
+            {% if "ISO" not in state.document_status.uploaded %}
+                <label><b>ISO Certificate</b></label><br>
+                <input type="file" name="ISO"><br><br>
+            {% endif %}
+
+            <button type="submit">Upload & Resume</button>
+        </form>
+    </div>
+
+    <!-- ℹ Instructions only while uploading -->
+    <div class="box">
+        <h4>ℹ Instructions</h4>
+        <ul>
+            <li>All three documents (GST, PAN, ISO) are mandatory</li>
+            <li>You can upload them one by one</li>
+            <li>Already uploaded documents will not be asked again</li>
+        </ul>
+    </div>
+{% else %}
+    <!-- 🎉 All documents uploaded -->
+    <div class="box ok">
+        🎉 All required documents have been uploaded successfully.  
+        Processing is in progress or completed.
+    </div>
+{% endif %}
+
+</body>
+</html>
