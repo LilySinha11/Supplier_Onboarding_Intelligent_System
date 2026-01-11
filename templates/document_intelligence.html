@@ -37,6 +37,24 @@
         ul {
             margin-top: 10px;
         }
+
+        .btn {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #0b5ed7;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -114,7 +132,7 @@
         <p><b>Score:</b> {{ result.document_score }}</p>
 
         {% if result.document_score >= 0.8 %}
-            <p class="ok">✔ Documents are complete. Proceeding to next stage.</p>
+            <p class="ok">✔ Documents are complete. Eligible for financial evaluation.</p>
         {% elif result.document_score >= 0.5 %}
             <p class="warn">⚠ Documents require manual review.</p>
         {% else %}
@@ -126,7 +144,22 @@
 
 <hr>
 
-<a href="/">⬅ Register Another Supplier</a>
+<!-- 🔥 THIS IS THE CRITICAL ORCHESTRATION BUTTON -->
+{% if result.workflow_status == "RUNNING" %}
+    <form action="/financial/run" method="post">
+        <button class="btn btn-primary">
+            💰 Proceed to Financial Health Evaluation
+        </button>
+    </form>
+{% endif %}
+
+<br>
+
+<a href="/">
+    <button class="btn btn-secondary">
+        ⬅ Register Another Supplier
+    </button>
+</a>
 
 </body>
 </html>

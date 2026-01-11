@@ -2,54 +2,88 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Screening Result</title>
+    <title>Supplier Screening Result</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .box { border: 1px solid #ddd; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .ok { color: green; font-weight: bold; }
+        .warn { color: orange; font-weight: bold; }
+        .bad { color: red; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <h2>Screening Result</h2>
 
-        <p><b>Status:</b> {{ result.screening_status }}</p>
-        <p><b>Score:</b> {{ result.pre_qualification_score }}</p>
+<h1>🧾 Supplier Pre-Qualification</h1>
 
-        <h3>Reasoning</h3>
-        <ul>
-        {% for log in result.agent_logs %}
-        <li>{{ log }}</li>
-        {% endfor %}
-        </ul>
+<div class="box">
+    <p><b>Supplier:</b> {{ result.supplier_name }}</p>
+    <p><b>Country:</b> {{ result.country }}</p>
+    <p><b>Category:</b> {{ result.category }}</p>
+</div>
 
-        <a href="/">Register Another Supplier</a>
+<!-- ================= SCREENING ================= -->
+<div class="box">
+    <h2>1️⃣ Screening Result</h2>
 
-    {% if result.risk_level %}
-        <hr>
-        <h2>Risk Intelligence</h2>
+    <p><b>Status:</b> {{ result.screening_status }}</p>
+    <p><b>Score:</b> {{ result.pre_qualification_score }}</p>
 
-        <p><b>Risk Level:</b> {{ result.risk_level }}</p>
-        <p><b>Risk Score:</b> {{ result.risk_score }}</p>
+    {% if result.pre_qualification_score >= 0.7 %}
+        <p class="ok">✔ Supplier passed pre-qualification</p>
+    {% elif result.pre_qualification_score >= 0.4 %}
+        <p class="warn">⚠ Supplier requires review</p>
+    {% else %}
+        <p class="bad">❌ Supplier failed pre-qualification</p>
+    {% endif %}
+</div>
 
-        <p><b>Explanation:</b></p>
-        <p>{{ result.risk_explanation }}</p>
+<!-- ================= RISK ================= -->
+{% if result.risk_level %}
+<div class="box">
+    <h2>2️⃣ Risk Intelligence</h2>
 
-        <p><b>Sources:</b></p>
-        <ul>
+    <p><b>Risk Level:</b> {{ result.risk_level }}</p>
+    <p><b>Risk Score:</b> {{ result.risk_score }}</p>
+
+    <p><b>Explanation:</b></p>
+    <p>{{ result.risk_explanation }}</p>
+
+    {% if result.risk_sources %}
+    <p><b>Sources:</b></p>
+    <ul>
         {% for src in result.risk_sources %}
         <li><a href="{{ src }}" target="_blank">{{ src }}</a></li>
         {% endfor %}
-        </ul>
-        {% endif %}
-    
-    {% if result.workflow_status == "PAUSED" %}
-        <hr>
-        <h3>Next Step</h3>
-        <p>{{ result.pause_reason }}</p>
-
-        <form action="/documents/upload" method="get">
-            <button type="submit">📄 Proceed to Document Upload</button>
-        </form>
+    </ul>
     {% endif %}
+</div>
+{% endif %}
 
-    
+<!-- ================= AGENT LOGS ================= -->
+<div class="box">
+    <h3>🧠 Agent Reasoning</h3>
+    <ul>
+        {% for log in result.agent_logs %}
+        <li>{{ log }}</li>
+        {% endfor %}
+    </ul>
+</div>
 
-    
+<!-- ================= NEXT STEP ================= -->
+{% if result.workflow_status == "PAUSED" %}
+<div class="box">
+    <h2>3️⃣ Next Step</h2>
+    <p>{{ result.pause_reason }}</p>
+
+    <form action="/documents/upload" method="get">
+        <button type="submit">📄 Proceed to Document Upload</button>
+    </form>
+</div>
+{% endif %}
+
+<hr>
+
+<a href="/">⬅ Register Another Supplier</a>
+
 </body>
 </html>

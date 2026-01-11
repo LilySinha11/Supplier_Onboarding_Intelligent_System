@@ -1,5 +1,8 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 from werkzeug.utils import secure_filename
 
 from config import Config
@@ -18,67 +21,60 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ----------------------------------------
-# Create DB tables (run once)
+# Create DB tables
 # ----------------------------------------
 with app.app_context():
     db.create_all()
 
 # ----------------------------------------
-# Supplier Registration Page
+# Supplier Registration
 # ----------------------------------------
 @app.route("/")
 def register_page():
-    return render_template("supplier_registeration.html")
+    return render_template("supplier_registration.html")
 
 # ----------------------------------------
-# Scenario 1 → 2 → 3 → 4
-# Screening → Risk → Documents → Intelligence
+# Start Onboarding (Scenario 1 → 2 → 3)
 # ----------------------------------------
 @app.route("/screening/start", methods=["POST"])
 def start_screening():
 
-    # ✅ FULLY INITIALIZED STATE (VERY IMPORTANT)
     state = {
         "supplier_id": 1,
         "supplier_name": request.form["supplier_name"],
         "country": request.form["country"],
         "category": request.form["category"],
 
-        # Scenario 1
         "screening_status": "",
         "pre_qualification_score": 0.0,
 
-        # Scenario 2
         "risk_score": 0.0,
         "risk_level": "",
         "risk_explanation": "",
         "risk_sources": [],
 
-        # Scenario 3 / 4 (DOCUMENTS)
         "document_status": {"uploaded": []},
         "document_extraction": {},
-        "document_validation": {
-            "expired": [],
-            "name_consistent": True
-        },
+        "document_validation": {"expired": [], "name_consistent": True},
         "document_score": None,
         "document_alerts": [],
 
-        # Workflow
+        "financial_score": None,
+        "credit_recommendation": "",
+        "financial_metrics": {},
+
         "workflow_status": "RUNNING",
         "current_stage": "screening",
         "pause_reason": "",
-
-        # Logs
         "agent_logs": []
     }
 
-    # ▶️ Run LangGraph
+    # Run LangGraph ONCE
     result = onboarding_graph.invoke(state)
 
-    # 💾 Persist state
+    # Persist
     onboarding_state = OnboardingState(
-        supplier_id=state["supplier_id"],
+        supplier_id=1,
         state_json=result,
         current_stage=result.get("current_stage"),
         status=result.get("workflow_status"),
@@ -86,18 +82,14 @@ def start_screening():
         screening_status=result.get("screening_status"),
         pre_qualification_score=result.get("pre_qualification_score")
     )
-
     db.session.add(onboarding_state)
     db.session.commit()
 
-    # ✅ ALWAYS show Screening + Risk result first
-    return render_template(
-        "screening_result.html",
-        result=result
-    )
+    # 🔥 ALWAYS show screening + risk first
+    return render_template("screening_result.html", result=result)
 
 # ----------------------------------------
-# Scenario 3 / 4: Document Upload + Intelligence
+# Scenario 3 + 4 → Upload Documents & Resume
 # ----------------------------------------
 @app.route("/documents/upload", methods=["GET", "POST"])
 def upload_documents():
@@ -109,6 +101,7 @@ def upload_documents():
     # POST → Upload & Resume
     # --------------------
     if request.method == "POST":
+
         uploaded = state["document_status"]["uploaded"]
 
         for doc_type in ["GST", "PAN", "ISO"]:
@@ -116,51 +109,62 @@ def upload_documents():
             if file and file.filename:
                 filename = secure_filename(file.filename)
                 file.save(os.path.join(UPLOAD_DIR, filename))
-
                 if doc_type not in uploaded:
                     uploaded.append(doc_type)
 
-        # Reset workflow for resume
+        # Reset workflow
         state["workflow_status"] = "RUNNING"
         state["pause_reason"] = ""
         state["agent_logs"] = []
 
-        # ▶️ Resume LangGraph
-        result = onboarding_graph.invoke(state)
+        # 🚨 CRITICAL: Resume from DOCUMENTS, not from SCREENING
+        result = onboarding_graph.invoke(
+            state,
+            config={"configurable": {"start_at": "documents"}}
+        )
 
-        # Persist updated state
+        # Persist
         record.state_json = result
         record.current_stage = result.get("current_stage")
         record.status = result.get("workflow_status")
         record.pause_reason = result.get("pause_reason")
         db.session.commit()
 
-        if result.get("workflow_status") == "COMPLETED":
-            result["pause_reason"] = ""
-
-
-        # 🔴 STILL PAUSED → stay on upload page
-        if result.get("workflow_status") == "PAUSED":
+        # 🔴 Still blocked
+        if result["workflow_status"] == "PAUSED":
             return render_template(
                 "upload_documents.html",
-                pause_reason=result.get("pause_reason"),
+                pause_reason=result["pause_reason"],
                 state=result
             )
 
-        # ✅ COMPLETED → show document intelligence
-        return render_template(
-            "document_intelligence.html",
-            result=result
-        )
+        # 🟢 Financial done → render directly
+        if result["current_stage"] == "financial":
+            return render_template("financial_result.html", result=result)
+
+        # Otherwise show doc intelligence
+        return render_template("document_intelligence.html", result=result)
 
     # --------------------
-    # GET → Show upload page
+    # GET → Show upload screen
     # --------------------
     return render_template(
         "upload_documents.html",
         pause_reason=record.pause_reason,
         state=state
     )
+
+
+# ----------------------------------------
+# Scenario 4 – Financial Result
+# ----------------------------------------
+@app.route("/financial")
+def financial_result():
+
+    record = OnboardingState.query.order_by(OnboardingState.id.desc()).first()
+    state = record.state_json
+
+    return render_template("financial_result.html", result=state)
 
 # ----------------------------------------
 # App Runner
